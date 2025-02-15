@@ -8,6 +8,10 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="./favicon.ico" />
+        <link rel="apple-touch-icon" href="./icon.png" />
+      </head>
       <body className="bg-gray-50">{children}</body>
     </html>
   );

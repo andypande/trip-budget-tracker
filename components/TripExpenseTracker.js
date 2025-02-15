@@ -139,7 +139,7 @@ const TripExpenseTracker = () => {
       const savedExpense = await response.json();
       const updatedExpenses = [savedExpense, ...expenses];
       setExpenses(updatedExpenses);
-      setBudget(prev => prev - expenseAmount);
+      setBudget(prev => prev - Number(expenseAmount));
       
       setNewExpense({
         amount: '',
@@ -169,7 +169,7 @@ const TripExpenseTracker = () => {
       const updatedExpenses = expenses.filter(e => e.id !== expenseId);
       
       setExpenses(updatedExpenses);
-      setBudget(prev => prev + expenseToDelete.amount);
+      setBudget(prev => prev + Number(expenseToDelete.amount));
       
       setAlertMessage('Expense deleted successfully');
       setShowAlert(true);
@@ -194,9 +194,9 @@ const TripExpenseTracker = () => {
       <div className="fixed top-0 left-0 right-0 bg-white shadow-md z-50">
         <div className="max-w-2xl mx-auto px-4 py-3">
           <div className="flex justify-between items-center">
-            <h1 className="text-lg font-bold">Trip Budget</h1>
+            <h1 className="text-lg font-bold">Honeymoon Trip Budget</h1>
             <div className={`px-4 py-2 rounded-lg ${getBudgetColor(budget)}`}>
-              <span className="text-xl font-bold">${budget.toFixed(2)}</span>
+              <span className="text-xl font-bold">${Number(budget).toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -312,15 +312,15 @@ const TripExpenseTracker = () => {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div className="flex-grow">
                         <p className="font-medium text-base">{expense.description}</p>
-                        <p className="text-sm text-gray-500">{expense.date}</p>
+                        <p className="text-sm text-gray-500">{new Date(expense.date).toLocaleDateString()}</p>
                       </div>
                       <div className="flex items-center justify-between sm:justify-end gap-4">
                         <span className="font-semibold text-red-500 text-base">
-                          -${expense.amount.toFixed(2)}
+                          -${Number(expense.amount).toFixed(2)}
                         </span>
                         <button
                           onClick={() => handleDelete(expense.id)}
-                          className="text-gray-500 hover:text-red-500 p-2"
+                          className="text-gray-500 hover:text-red-500 p-2 cursor-pointer"
                           aria-label="Delete expense"
                         >
                           <Trash2 size={20} />
