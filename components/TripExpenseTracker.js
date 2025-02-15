@@ -7,6 +7,7 @@ const TripExpenseTracker = () => {
   const INITIAL_BUDGET = 6789;
   const [budget, setBudget] = useState(INITIAL_BUDGET);
   const [expenses, setExpenses] = useState([]);
+  const [totalExpenses, setTotalExpenses] = useState(0);
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -41,7 +42,8 @@ const TripExpenseTracker = () => {
       const sortedExpenses = data.sort((a, b) => new Date(b.date) - new Date(a.date));
       setExpenses(sortedExpenses);
       
-      const totalExpenses = sortedExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+      const totalExpenses = sortedExpenses.reduce((sum, expense) => Number(sum + Number(expense.amount)), 0);
+      setTotalExpenses(totalExpenses);
       setBudget(INITIAL_BUDGET - totalExpenses);
       setIsLoading(false);
       setIsRefreshing(false);
@@ -138,6 +140,8 @@ const TripExpenseTracker = () => {
 
       const savedExpense = await response.json();
       const updatedExpenses = [savedExpense, ...expenses];
+      const totalExpenses = updatedExpenses.reduce((sum, expense) => Number(sum + Number(expense.amount)), 0);
+      setTotalExpenses(totalExpenses);
       setExpenses(updatedExpenses);
       setBudget(prev => prev - Number(expenseAmount));
       
@@ -167,7 +171,8 @@ const TripExpenseTracker = () => {
 
       const expenseToDelete = expenses.find(e => e.id === expenseId);
       const updatedExpenses = expenses.filter(e => e.id !== expenseId);
-      
+      const totalExpenses = updatedExpenses.reduce((sum, expense) => Number(sum + Number(expense.amount)), 0);
+      setTotalExpenses(totalExpenses);
       setExpenses(updatedExpenses);
       setBudget(prev => prev + Number(expenseToDelete.amount));
       
@@ -289,6 +294,18 @@ const TripExpenseTracker = () => {
               {error}
             </Alert>
           )}
+
+          {/* Budget and Total Expenses */}
+          <div className="mb-4 p-4 bg-white rounded-lg shadow">
+            <div className="flex justify-between">
+              <span className="font-medium text-base">Starting Budget:</span>
+              <span className="font-medium text-base">${INITIAL_BUDGET.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between mt-2">
+              <span className="font-medium text-base">Expenses So Far:</span>
+              <span className="font-medium text-base">${totalExpenses.toFixed(2)}</span>
+            </div>
+          </div>
 
           {/* Expenses List */}
           <div className="bg-white rounded-lg shadow">
