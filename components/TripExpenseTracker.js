@@ -15,11 +15,13 @@ const TripExpenseTracker = () => {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [startY, setStartY] = useState(null);
+  const [startX, setStartX] = useState(null);
   const [swipingItemId, setSwipingItemId] = useState(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
   
   const pullThreshold = 100; // pixels to trigger refresh
-  const deleteThreshold = 100; // pixels to trigger delete
+  const deleteThreshold = 150; // pixels to trigger delete
+  const verticalSwipeThreshold = 30; // pixels to differentiate between scroll and swipe
   
   const [newExpense, setNewExpense] = useState({
     amount: '',
@@ -57,21 +59,35 @@ const TripExpenseTracker = () => {
   const handleTouchStart = (e) => {
     if (window.scrollY === 0) {
       setStartY(e.touches[0].clientY);
+      setStartX(e.touches[0].clientX);
     }
   };
 
   const handleTouchMove = (e) => {
-    if (startY !== null) {
+    if (startY !== null && startX !== null) {
       const currentY = e.touches[0].clientY;
-      const diff = currentY - startY;
+      const currentX = e.touches[0].clientX;
+      const diffY = currentY - startY;
+      const diffX = currentX - startX;
       
-      if (diff > 0 && window.scrollY === 0) {
+      if (Math.abs(diffY) > verticalSwipeThreshold) {
+        // Consider it a scroll if vertical movement is significant
+        setSwipingItemId(null);
+        setSwipeOffset(0);
+        return;
+      }
+      
+      if (diffY > 0 && window.scrollY === 0) {
         setIsRefreshing(true);
         e.preventDefault();
         
         // Calculate pull distance as percentage of threshold
-        const pullPercentage = Math.min((diff / pullThreshold) * 100, 100);
-        contentRef.current.style.transform = `translateY(${diff * 0.3}px)`;
+        const pullPercentage = Math.min((diffY / pullThreshold) * 100, 100);
+        contentRef.current.style.transform = `translateY(${diffY * 0.3}px)`;
+      }
+      
+      if (swipingItemId !== null && diffX < 0) { // Only allow left swipe
+        setSwipeOffset(diffX);
       }
     }
   };
@@ -82,34 +98,22 @@ const TripExpenseTracker = () => {
       fetchExpenses();
     }
     setStartY(null);
+    setStartX(null);
+    
+    if (swipingItemId !== null) {
+      if (Math.abs(swipeOffset) > deleteThreshold) {
+        handleDelete(swipingItemId);
+      }
+      setSwipeOffset(0);
+      setSwipingItemId(null);
+    }
   };
 
   const handleSwipeStart = (e, expenseId) => {
     setSwipingItemId(expenseId);
     setSwipeOffset(0);
-    setStartY(e.touches[0].clientX);
-  };
-
-  const handleSwipeMove = (e) => {
-    if (swipingItemId !== null && startY !== null) {
-      const currentX = e.touches[0].clientX;
-      const diff = currentX - startY;
-      
-      if (diff < 0) { // Only allow left swipe
-        setSwipeOffset(diff);
-      }
-    }
-  };
-
-  const handleSwipeEnd = async () => {
-    if (swipingItemId !== null) {
-      if (Math.abs(swipeOffset) > deleteThreshold) {
-        await handleDelete(swipingItemId);
-      }
-      setSwipeOffset(0);
-      setSwipingItemId(null);
-      setStartY(null);
-    }
+    setStartY(e.touches[0].clientY);
+    setStartX(e.touches[0].clientX);
   };
 
   const getBudgetColor = (amount) => {
@@ -316,8 +320,8 @@ const TripExpenseTracker = () => {
                   key={expense.id}
                   className="relative overflow-hidden"
                   onTouchStart={(e) => handleSwipeStart(e, expense.id)}
-                  onTouchMove={handleSwipeMove}
-                  onTouchEnd={handleSwipeEnd}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
                 >
                   <div 
                     className="p-4 bg-white transition-transform"
