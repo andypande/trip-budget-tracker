@@ -1,4 +1,4 @@
-import TripExpenseTracker from '@/components/TripExpenseTracker';
+import TripExpenseTracker from '../components/TripExpenseTracker';
 
 export default function Home() {
   return (
