@@ -1,7 +1,6 @@
 'use client';
-
 import React, { useState, useEffect, useRef } from 'react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import Alert from '@mui/material/Alert';
 import { ChevronDown, ChevronUp, Trash2, Plus } from 'lucide-react';
 
 const TripExpenseTracker = () => {
@@ -281,13 +280,13 @@ const TripExpenseTracker = () => {
           {/* Alerts */}
           {showAlert && (
             <Alert className="mb-4">
-              <AlertDescription>{alertMessage}</AlertDescription>
+             {alertMessage}
             </Alert>
           )}
           
           {error && (
             <Alert className="mb-4 bg-red-100">
-              <AlertDescription>{error}</AlertDescription>
+              {error}
             </Alert>
           )}
 
