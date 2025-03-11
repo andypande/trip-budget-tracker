@@ -4,7 +4,7 @@ import Alert from '@mui/material/Alert';
 import { ChevronDown, ChevronUp, Trash2, Plus } from 'lucide-react';
 
 const TripExpenseTracker = () => {
-  const INITIAL_BUDGET = 6789;
+  const INITIAL_BUDGET = 8939;
   const [budget, setBudget] = useState(INITIAL_BUDGET);
   const [expenses, setExpenses] = useState([]);
   const [totalExpenses, setTotalExpenses] = useState(0);
@@ -32,7 +32,15 @@ const TripExpenseTracker = () => {
   const contentRef = useRef(null);
 
   useEffect(() => {
-    fetchExpenses();
+    if (navigator.onLine) {
+      fetchExpenses();
+    } else {
+      setIsLoading(false);
+    }
+    window.addEventListener('online', syncExpenses);
+    return () => {
+      window.removeEventListener('online', syncExpenses);
+    };
   }, []);
 
   const fetchExpenses = async () => {
@@ -127,41 +135,83 @@ const TripExpenseTracker = () => {
     if (!newExpense.amount || !newExpense.description) return;
 
     const expenseAmount = parseFloat(newExpense.amount);
-    
-    try {
-      const response = await fetch('/api/expenses', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...newExpense,
-          amount: expenseAmount,
-        }),
-      });
+    const expenseData = {
+      ...newExpense,
+      amount: expenseAmount,
+    };
 
-      if (!response.ok) throw new Error('Failed to add expense');
-
-      const savedExpense = await response.json();
-      const updatedExpenses = [savedExpense, ...expenses];
-      const totalExpenses = updatedExpenses.reduce((sum, expense) => Number(sum + Number(expense.amount)), 0);
-      setTotalExpenses(totalExpenses);
-      setExpenses(updatedExpenses);
-      setBudget(prev => prev - Number(expenseAmount));
+    if (!navigator.onLine) {
+      // Save to localStorage if offline
+      const offlineExpenses = JSON.parse(localStorage.getItem('offlineExpenses')) || [];
+      offlineExpenses.push(expenseData);
+      localStorage.setItem('offlineExpenses', JSON.stringify(offlineExpenses));
       
-      setNewExpense({
-        amount: '',
-        description: '',
-        date: new Date().toISOString().split('T')[0]
-      });
-      
-      setAlertMessage('Go have fun! Your expense has been added successfully.');
+      setAlertMessage('You are offline. Your expense will be added once you are back online.');
       setShowAlert(true);
-      setIsFormVisible(false);
       setTimeout(() => setShowAlert(false), 3000);
-    } catch (err) {
-      setError('Failed to add expense');
-      setTimeout(() => setError(null), 3000);
+    } else {
+      try {
+        const response = await fetch('/api/expenses', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(expenseData),
+        });
+
+        if (!response.ok) throw new Error('Failed to add expense');
+
+        const savedExpense = await response.json();
+        const updatedExpenses = [savedExpense, ...expenses];
+        const totalExpenses = updatedExpenses.reduce((sum, expense) => Number(sum + Number(expense.amount)), 0);
+        setTotalExpenses(totalExpenses);
+        setExpenses(updatedExpenses);
+        setBudget(prev => prev - Number(expenseAmount));
+        
+        setNewExpense({
+          amount: '',
+          description: '',
+          date: new Date().toISOString().split('T')[0]
+        });
+        
+        setAlertMessage('Go have fun! Your expense has been added successfully.');
+        setShowAlert(true);
+        setIsFormVisible(false);
+        setTimeout(() => setShowAlert(false), 3000);
+      } catch (err) {
+        setError('Failed to add expense');
+        setTimeout(() => setError(null), 3000);
+      }
+    }
+  };
+
+  const syncExpenses = async () => {
+    const offlineExpenses = JSON.parse(localStorage.getItem('offlineExpenses')) || [];
+    if (offlineExpenses.length > 0) {
+      for (const expense of offlineExpenses) {
+        try {
+          const response = await fetch('/api/expenses', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(expense),
+          });
+
+          if (!response.ok) throw new Error('Failed to add expense');
+
+          const savedExpense = await response.json();
+          const updatedExpenses = [savedExpense, ...expenses];
+          const totalExpenses = updatedExpenses.reduce((sum, expense) => Number(sum + Number(expense.amount)), 0);
+          setTotalExpenses(totalExpenses);
+          setExpenses(updatedExpenses);
+          setBudget(prev => prev - Number(expense.amount));
+        } catch (err) {
+          setError('Failed to sync offline expenses');
+          setTimeout(() => setError(null), 3000);
+        }
+      }
+      localStorage.removeItem('offlineExpenses');
     }
   };
 
